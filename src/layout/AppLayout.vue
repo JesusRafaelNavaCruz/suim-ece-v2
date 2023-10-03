@@ -1,10 +1,21 @@
 <script setup>
 import AppTopBar from "./AppTopBar.vue";
-import AppSidebard from "./AppSidebar.vue";
-import { computed } from "vue";
-import { useLayout } from '@/layout/composables/layout';
+import AppSidebar from "./AppSidebar.vue";
+import AppFooter from './AppFooter.vue';
+import { computed, ref, watch } from "vue";
+import { useLayout } from "@/layout/composables/layout";
 
 const { layoutConfig, layoutState, isSidebarActive } = useLayout();
+
+const outsideClickListener = ref(null);
+
+watch(isSidebarActive, (newVal) => {
+  if (newVal) {
+    bindOutsideClickListener();
+  } else {
+    unbindOutsideClickListener();
+  }
+});
 
 const containerClass = computed(() => {
   return {
@@ -21,6 +32,33 @@ const containerClass = computed(() => {
     "p-ripple-disabled": !layoutConfig.ripple.value,
   };
 });
+
+const bindOutsideClickListener = () => {
+  if (!outsideClickListener.value) {
+    outsideClickListener.value = (event) => {
+      if (isOutsideClicked(event)) {
+        layoutState.overlayMenuActive.value = false;
+        layoutState.staticMenuMobileActive.value = false;
+        layoutState.menuHoverActive.value = false;
+      }
+    };
+    document.addEventListener("click", outsideClickListener.value);
+  }
+};
+
+const unbindOutsideClickListener = () => {
+  if (outsideClickListener.value) {
+    document.removeEventListener("click", outsideClickListener);
+    outsideClickListener.value = null;
+  }
+};
+
+const isOutsideClicked = (event) => {
+    const sidebarEl = document.querySelector('.layout-sidebar');
+    const topbarEl = document.querySelector('.layout-menu-button');
+
+    return !(sidebarEl.isSameNode(event.target) || sidebarEl.contains(event.target) || topbarEl.isSameNode(event.target) || topbarEl.contains(event.target));
+};
 </script>
 
 <template>
@@ -28,13 +66,15 @@ const containerClass = computed(() => {
     <app-top-bar></app-top-bar>
 
     <div class="layout-sidebar">
-      <app-sidebard></app-sidebard>
+      <app-sidebar></app-sidebar>
     </div>
 
     <div class="layout-main-container">
       <div class="layout-main">
         <router-view></router-view>
       </div>
+      <app-footer></app-footer>
     </div>
+    <div class="layout-mask"></div>
   </div>
 </template>
